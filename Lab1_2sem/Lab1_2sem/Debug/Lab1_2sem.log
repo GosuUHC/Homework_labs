@@ -1,5 +1,0 @@
-﻿  Lab1_2sem.cpp
-C:\Users\Ashot\source\repos\Lab1_2sem\Lab1_2sem\Lab1_2sem.cpp(53,17): warning C4129: o: неизвестная escape-последовательность
-C:\Users\Ashot\source\repos\Lab1_2sem\Lab1_2sem\Lab1_2sem.cpp(59,12): warning C4244: return: преобразование "double" в "int", возможна потеря данных
-C:\Users\Ashot\source\repos\Lab1_2sem\Lab1_2sem\Lab1_2sem.cpp(120,15): warning C4244: аргумент: преобразование "time_t" в "unsigned int", возможна потеря данных
-  Lab1_2sem.vcxproj -> C:\Users\Ashot\source\repos\Lab1_2sem\Debug\Lab1_2sem.exe
