@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <ctime>
+#include <cmath>
 using namespace std;
 
 
@@ -58,90 +59,100 @@ bool GetFileMatr(double** a, int n, int m) {
 	f.close();
 	return true;
 }
-void triangMatr(double** A, double** B, int n) {
-	double koef;
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n + 1; j++) {
-			B[i][j] = A[i][j];
-		}
-	}
-	for (int k = 0; k < n; k++) {
-		for (int i = k + 1; i < n; i++) {
-			koef = -1. * B[i][k] / B[k][k];
-			for (int j = k; j < n + 1; j++) {
-				B[i][j] = B[i][j] + B[k][j] * koef;
-			}
-		}
-	}
-	Out(B, n, n + 1);
-}
+
 void PrintVect(double* x, int n) {
 	cout << endl;
 	cout << "Vector resheniy" << endl;
 	for (int j = 0; j < n; j++)
-		cout << setw(5) << x[j];
+		cout << setw(15) << x[j];
 	cout << endl;
 }
-void Solve(double** A, double* x, int n) {
-	double res = 0;
-	double** B;
-	NewMemoryForMatr(B, n, n + 1);
-	triangMatr(A, B, n);
-	for (int i = n - 1; i >= 0; i--) {
-		res = 0;
-		for (int j = i + 1; j <= n - 1; j++) {
-			res = res - x[j] * B[i][j];
-		}
-		res += B[i][n];
-		x[i] = res / B[i][i];
-	}
-	
-	DelMatrMemory(B, n, n + 1);
-	
-}
-void OpredGauZzZ(double **a, int n, int m)
+void shuffling(double**& M, int n, int m, int k, double& Det)
 {
-	double op=1;
-	double** B;
-	NewMemoryForMatr(B, n, n + 1);
-	triangMatr(a, B, n);
-	int i=0, j=0;
-	for(;i<n;i++)
+	for (int i = k + 1; i < n; i++)
+	{
+		if (M[i][k] != 0)
 		{
-			j = i;
-			op *= B[i][j];
+			double temp;
+			for (int i1 = 0; i1 < m; i1++)
+			{
+				temp = M[k][i1];
+				M[k][i1] = M[i][i1];
+				M[i][i1] = temp;
+			}
+			Det *= -1;
+			break;
 		}
-	cout << "\nOpred=" << op << endl;
+	}
 }
-void clone(double**& M, int n, int m, double** M1)
+bool metodminora(double**& M, int n, int m, double& Det)
+{
+	for (int i = 0; i < n; i++)
+	{
+		if (M[i][i] == 0) shuffling(M, n, m, i, Det);
+		if (M[i][i] == 0) return false;
+		for (int i1 = i + 1; i1 < n; i1++)
+			for (int i2 = i + 1; i2 < m; i2++)
+				M[i1][i2] = M[i][i] * M[i1][i2] - M[i][i2] * M[i1][i];
+		for (int j = i + 1; j < n; j++)
+		{
+			M[j][i] = 0;
+		}
+	}
+	return true;
+}
+bool Solve(double**& M, double* x, int n, int m, double& Det)
+{
+	double res = 0;
+	if (!metodminora(M, n, m, Det)) return false;
+	for (int i = n - 1; i >= 0; i--)
+	{
+		res = 0;
+		for (int j = i + 1; j <= n - 1; j++)
+			res = res - x[j] * M[i][j];
+		res += M[i][n];
+		x[i] = res / M[i][i];
+	}
+	return true;
+}
+double opred(double** M, int n, int m)
+{
+	double op = 1;
+	for (int i = 0; i < n; i++)
+	{
+		if (M[i][i] == 0) return 0;
+		op *= M[i][i] / pow(M[i][i], n - 1 - i);
+	}
+	return op;
+}
+void copy(double**& M, int n, int m, double** M1)
 {
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < m; j++)
 			M1[i][j] = M[i][j];
 }
-void inver(double** M, int n, int m, double**& rev)
+bool inver(double** M, int n, int m, double& Det, double**& rev)
 {
-	cout <<endl<< "obratka" << endl;
 	double* x = new double[n];
-	bool t = true;
+	bool metka = true;
 	for (int i = 0; i < n; i++)
 	{
 		double** buff;
 		NewMemoryForMatr(buff, n, m);
-		clone(M, n, m, buff);
+		copy(M, n, m, buff);
 		for (int j = 0; j < n; j++)
 		{
 			if (i == j) buff[j][m - 1] = 1;
 			else buff[j][m - 1] = 0;
 		}
-		Solve(buff, x, n);
+		if (!Solve(buff, x, n, m, Det)) metka = false;
 		for (int j = 0; j < n; j++)
 			rev[j][i] = x[j];
 		DelMatrMemory(buff, n, m);
 	}
 	delete[] x;
 	x = NULL;
-	
+	return metka;
 }
 void test(double**& A, int n, int m)
 {
@@ -186,31 +197,79 @@ void test(double**& A, int n, int m)
 	{
 		for (int i = 0; i < n; i++)
 			for (int j = 0; j < m; j++)
-				A[i][j] = 1. / (i + j + 1);
+				A[i][j] = 1. / (i + j + 1.);
 		break;
 	}
 	}
 }
+double accuracy(double** M1, int n, int m, double* x)
+{
+	double epsilon = 0;
+	double s;
+	for (int i = 0; i < n; i++)
+	{
+		s = 0;
+		for (int k = 0; k < m - 1; k++)
+			s += M1[i][k] * x[k];
+		if (fabs(M1[i][m - 1] - s) > epsilon) epsilon = fabs(M1[i][m - 1] - s);
+	}
+	return epsilon;
+}
+void correctness(double** a, double** b, int n1, int m1, int n2, int m2)
+{
+	cout << endl << "checking if obratka is correct" << endl;
+	double** buff;
+	NewMemoryForMatr(buff, n1, m2);
+	double S;
+	if (m1 != n2)
+	{
+		cout << "oh no! error" << endl;
+		DelMatrMemory(buff, n1, m2);
+	}
+	for (int i = 0; i < n1; i++)
+		for (int j = 0; j < m2; j++)
+		{
+			S = 0;
+			for (int k = 0; k < m1; k++)
+				S += a[i][k] * b[k][j];
+			buff[i][j] = S;
+		}
+	Out(buff, n1, m2);
+	DelMatrMemory(buff, n1, m2);
+}
 int main()
 {
 	int n = GetNumber();
-	
+	int m = n + 1;
 	double** a;
 	double** copya;
 	double** re;
 	double* x = new double[n];
-	NewMemoryForMatr(a, n, n+1);
-	NewMemoryForMatr(copya, n, n + 1);
-	NewMemoryForMatr(re, n, n + 1);
-	test(a, n, n + 1);
-	Out(a, n, n+1);
-	clone(a, n, n + 1, copya);
-	Solve(a, x, n);
-	PrintVect(x, n);
-	inver(copya, n, n + 1, re);
-	Out(re, n, n);
-	OpredGauZzZ(a, n, n + 1);
-	DelMatrMemory(a, n, n+1);
+	double op=1;
+	NewMemoryForMatr(a, n, m);
+	test(a, n, m);
+	NewMemoryForMatr(copya, n, m);
+	copy(a, n, m, copya);
+	NewMemoryForMatr(re, n, m);
+	Out(a, n, m);
+	if (Solve(a, x, n, m, op))
+	{
+		PrintVect(x, n);
+		cout << "eps=" << accuracy(copya, n, m, x) << endl;
+	}
+	else cout << "there is no solution!" << endl;
+	cout << "opred=" << op * opred(a, n, m) << endl;;
+	if (inver(copya, n, m, op, re))
+	{
+		Out(re, n, m);
+		correctness(copya, re, n, m-1, n, n);
+	}
+	else cout << "no solution" << endl;
+	DelMatrMemory(a, n, m);
+	DelMatrMemory(copya, n, m);
+	DelMatrMemory(re, n, m);
+
+
 	delete[]x;
 	x = NULL;
 	cout << "bye";
